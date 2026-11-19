@@ -425,17 +425,19 @@ hr, .stDivider {
 # DATABASE CONNECTION
 # ──────────────────────────────────────────────
 @st.cache_resource
-def get_engine(password: str):
+def get_engine():
+    db = st.secrets["mysql"]
+
     url = URL.create(
         drivername="mysql+mysqlconnector",
-        username="root",
-        password=password,
-        host="127.0.0.1",
-        port=3306,
-        database="placement_management"
+        username=db["user"],
+        password=db["password"],
+        host=db["host"],
+        port=int(db["port"]),
+        database=db["database"]
     )
-    return create_engine(url, pool_pre_ping=True, pool_recycle=3600)
 
+    return create_engine(url, pool_pre_ping=True, pool_recycle=3600)
 
 def fetch_data(engine, query: str, params: dict = None) -> pd.DataFrame:
     try:
@@ -511,23 +513,11 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    password = st.text_input(
-        "MySQL Root Password",
-        type="password",
-        placeholder="Enter password",
-        key="sidebar_password",
-        help="Enter your MySQL root password to connect"
-    )
-
-    if not password:
-        st.info("🔐 Enter your MySQL root password to connect to the database.")
-        st.stop()
-
     try:
-        engine = get_engine(password)
+        engine = get_engine()
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        st.success("✅ MySQL Connected", icon="✅")
+        st.success("✅ Cloud MySQL Connected", icon="✅")
     except Exception as e:
         st.error(f"Database connection failed: {e}")
         st.stop()
